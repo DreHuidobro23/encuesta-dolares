@@ -15,15 +15,14 @@ respuestas que el formulario. No hay base de datos ni servidor propio.
 | `app.js` | Flujo de preguntas, filtros y envío a Google Forms |
 | `config.js` | IDs del formulario, ítems, enlace del sorteo y Pixel de Meta |
 | `styles.css` | Estilos (misma paleta de las piezas de LinkedIn e Instagram) |
-| `bases.html` | Bases del sorteo (completar los textos `[COMPLETAR]`) |
+| `bases.html` | Bases del sorteo |
 
 ## Antes de publicar
 
-1. Completa los campos `[COMPLETAR]` de `bases.html`.
-2. El registro del sorteo ya está conectado al Google Form "Sorteo gift card S/ 300 – Encuesta
+1. El registro del sorteo ya está conectado al Google Form "Sorteo gift card S/ 300 – Encuesta
    dólares" (bloque `sorteo` de `config.js`). Aparece solo al terminar la encuesta y guarda los
    datos en ese formulario aparte, para que las respuestas sigan siendo anónimas.
-3. Opcional: pega el ID de tu Pixel de Meta en `metaPixelId` para medir las encuestas
+2. Opcional: pega el ID de tu Pixel de Meta en `metaPixelId` para medir las encuestas
    completadas desde la pauta de Instagram.
 
 > Si cambias preguntas u opciones en el Google Form, actualiza `config.js`: los valores
