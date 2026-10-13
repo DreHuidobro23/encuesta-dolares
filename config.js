@@ -7,9 +7,16 @@ window.SURVEY_CONFIG = {
   // ID público del Google Form (parte de la URL .../forms/d/e/<ID>/viewform)
   formId: '1FAIpQLSf6mf_zNMUmfGVy_3m7Ve_CELVUM-6ORapJgcvcxxj1aknyjA',
 
-  // Enlace al formulario SEPARADO donde los participantes dejan sus datos para el sorteo.
-  // Déjalo vacío ('') para ocultar el botón del sorteo.
-  sorteoUrl: '',
+  // Formulario SEPARADO del sorteo (Google Form "Sorteo gift card S/ 300 – Encuesta dólares").
+  // Los datos de contacto van a otra hoja, así las respuestas de la encuesta siguen siendo anónimas.
+  // Para ocultar el registro del sorteo, cambia formId a ''.
+  sorteo: {
+    formId: '1FAIpQLSfDXcw0-W4y3ofyI54DRqXp2kgzyAZ0Qzvsau8JPMz4lWYnVA',
+    nombre: '1068608542',
+    correo: '2033849936',
+    celular: '976110091',
+    acepto: { entry: '1155403461', value: 'Acepto' }
+  },
 
   // ID del Pixel de Meta (opcional). Si lo completas, se registra un evento "Lead"
   // cuando alguien termina la encuesta, útil para optimizar la pauta en Instagram.

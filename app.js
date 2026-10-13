@@ -3,7 +3,8 @@
 
   const C = window.SURVEY_CONFIG;
   const STORAGE_KEY = 'encuesta-dolares-v1';
-  const DONE_KEY = 'encuesta-dolares-enviada';
+  const DONE_KEY = 'encuesta-dolares-enviada'; // 'completa' | 'fuera'
+  const RAFFLE_KEY = 'encuesta-dolares-sorteo';
   const FORM_URL = `https://docs.google.com/forms/d/e/${C.formId}/formResponse`;
   const N = C.items.length;
 
@@ -35,11 +36,14 @@
   function save() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* sin almacenamiento */ }
   }
-  function markDone() {
-    try { localStorage.setItem(DONE_KEY, '1'); localStorage.removeItem(STORAGE_KEY); } catch (e) { /* noop */ }
+  function markDone(result) {
+    try { localStorage.setItem(DONE_KEY, result); localStorage.removeItem(STORAGE_KEY); } catch (e) { /* noop */ }
   }
-  function alreadyDone() {
-    try { return localStorage.getItem(DONE_KEY) === '1'; } catch (e) { return false; }
+  function doneResult() {
+    try { return localStorage.getItem(DONE_KEY); } catch (e) { return null; }
+  }
+  function raffleDone() {
+    try { return localStorage.getItem(RAFFLE_KEY) === '1'; } catch (e) { return false; }
   }
 
   // ------------------------------------------------------------------
@@ -345,7 +349,7 @@
         try {
           await submit('0,1,2,3');
           trackLead();
-          markDone();
+          markDone('completa');
           state.step = 'gracias';
           screens.gracias();
         } catch (e) {
@@ -363,30 +367,95 @@
       const share = encodeURIComponent(
         `¿Cambias dólares online? Responde esta encuesta para una tesis de maestría y participa por una gift card de ${C.premio}: ${location.origin}`
       );
-      const sorteo = C.sorteoUrl
-        ? `<a class="btn block" href="${esc(C.sorteoUrl)}" target="_blank" rel="noopener">Participar en el sorteo 🎁</a>
-           <p class="muted">Tus datos de contacto se registran en un formulario aparte, para que tus respuestas sigan siendo anónimas.</p>`
-        : '';
       const node = el(`
         <section class="screen">
           <span class="tag">${repeat ? 'YA RESPONDISTE' : 'ENCUESTA ENVIADA'}</span>
           <h1>¡Gracias por <span class="accent">tu ayuda!</span></h1>
           <p>${repeat ? 'Ya registramos tu encuesta desde este dispositivo.' : 'Tus respuestas se registraron correctamente.'} Cada respuesta acerca esta investigación a su meta.</p>
+          <div id="raffle"></div>
           <div class="stack">
-            ${sorteo}
             <a class="btn light block" href="https://wa.me/?text=${share}" target="_blank" rel="noopener">Compartir por WhatsApp</a>
           </div>
         </section>`);
+      if (C.sorteo && C.sorteo.formId) renderRaffle(node.querySelector('#raffle'));
       progressBar.style.width = '100%';
       mount(node);
     }
   };
 
+  // ------------------------------------------------------------------
+  // Registro del sorteo (se envía a un Google Form distinto al de la encuesta)
+  // ------------------------------------------------------------------
+  function renderRaffle(box) {
+    if (raffleDone()) {
+      box.innerHTML = `<div class="prize"><strong>🎁</strong><span>Ya estás participando en el sorteo de la gift card de ${esc(C.premio)}. ¡Mucha suerte!</span></div>`;
+      return;
+    }
+    const S = C.sorteo;
+    const form = el(`
+      <form class="raffle" novalidate>
+        <div class="prize"><strong>${esc(C.premio)}</strong><span>Deja tus datos para participar en el sorteo de la gift card</span></div>
+        <label class="field-label" for="r-nombre">Nombre y apellido</label>
+        <input class="text-input" id="r-nombre" name="nombre" type="text" autocomplete="name" maxlength="80" required>
+        <label class="field-label" for="r-correo">Correo electrónico</label>
+        <input class="text-input" id="r-correo" name="correo" type="email" autocomplete="email" inputmode="email" maxlength="120" required>
+        <label class="field-label" for="r-cel">Número de celular</label>
+        <input class="text-input" id="r-cel" name="celular" type="tel" autocomplete="tel-national" inputmode="numeric" maxlength="9" placeholder="9XXXXXXXX" required>
+        <label class="consent">
+          <input type="checkbox" id="r-acepto">
+          <span>Acepto las <a href="bases.html" target="_blank" rel="noopener">bases del sorteo</a> y que mis datos se usen solo para contactarme si resulto ganador(a).</span>
+        </label>
+        <p class="muted">Tus datos se guardan en un registro aparte y no se vinculan con tus respuestas de la encuesta.</p>
+        <div id="r-err"></div>
+        <div class="actions"><button class="btn block" type="submit">Participar en el sorteo 🎁</button></div>
+      </form>`);
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nombre = form.nombre.value.trim();
+      const correo = form.correo.value.trim();
+      const celular = form.celular.value.replace(/\s+/g, '');
+      const err = form.querySelector('#r-err');
+      let msg = '';
+      if (nombre.length < 3) msg = 'Ingresa tu nombre y apellido.';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) msg = 'Ingresa un correo electrónico válido.';
+      else if (!/^9\d{8}$/.test(celular)) msg = 'Ingresa un celular de 9 dígitos que empiece con 9.';
+      else if (!form.querySelector('#r-acepto').checked) msg = 'Debes aceptar las bases del sorteo para participar.';
+      if (msg) { err.innerHTML = `<div class="error">${msg}</div>`; return; }
+
+      const btn = form.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = 'Registrando…';
+      const p = new URLSearchParams();
+      p.append('fvv', '1');
+      p.append('pageHistory', '0');
+      p.append('entry.' + S.nombre, nombre);
+      p.append('entry.' + S.correo, correo);
+      p.append('entry.' + S.celular, celular);
+      p.append('entry.' + S.acepto.entry, S.acepto.value);
+      try {
+        await fetch(`https://docs.google.com/forms/d/e/${S.formId}/formResponse`, { method: 'POST', mode: 'no-cors', body: p });
+        try { localStorage.setItem(RAFFLE_KEY, '1'); } catch (e2) { /* noop */ }
+        renderRaffle(box);
+      } catch (e3) {
+        btn.disabled = false;
+        btn.textContent = 'Reintentar';
+        err.innerHTML = '<div class="error">No pudimos registrar tus datos. Revisa tu conexión e inténtalo de nuevo.</div>';
+      }
+    });
+    box.innerHTML = '';
+    box.appendChild(form);
+  }
+
   function disqualify(pageHistory) {
     save();
     // Se registra igual que en el Google Form original, donde estas respuestas también se envían.
     submit(pageHistory).catch(() => { /* no bloquea la pantalla final */ });
-    markDone();
+    markDone('fuera');
+    showOutOfProfile();
+  }
+
+  function showOutOfProfile() {
     const node = el(`
       <section class="screen">
         <span class="tag">GRACIAS</span>
@@ -441,6 +510,8 @@
   }
 
   initPixel();
-  if (alreadyDone()) screens.gracias(true);
+  const done = doneResult();
+  if (done === 'fuera') showOutOfProfile();
+  else if (done) screens.gracias(true);
   else render();
 })();

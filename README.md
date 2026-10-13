@@ -20,8 +20,9 @@ respuestas que el formulario. No hay base de datos ni servidor propio.
 ## Antes de publicar
 
 1. Completa los campos `[COMPLETAR]` de `bases.html`.
-2. Crea un Google Form aparte para los datos del sorteo (nombre, correo y teléfono) y pega
-   su enlace en `sorteoUrl` dentro de `config.js`.
+2. El registro del sorteo ya está conectado al Google Form "Sorteo gift card S/ 300 – Encuesta
+   dólares" (bloque `sorteo` de `config.js`). Aparece solo al terminar la encuesta y guarda los
+   datos en ese formulario aparte, para que las respuestas sigan siendo anónimas.
 3. Opcional: pega el ID de tu Pixel de Meta en `metaPixelId` para medir las encuestas
    completadas desde la pauta de Instagram.
 
